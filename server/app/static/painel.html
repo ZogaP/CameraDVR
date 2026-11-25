@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CameraDVR – Painel</title>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --fg:#1b1f24; --muted:#5b6470; --line:#e2e5ea; --ok:#1a7f37; --bad:#c62828; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#111418; --card:#1a1e24; --fg:#e8eaed; --muted:#9aa3ad; --line:#2b313a; } }
+  body { margin:0; font:14px/1.45 system-ui, sans-serif; background:var(--bg); color:var(--fg); }
+  main { max-width:1100px; margin:0 auto; padding:16px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px; margin-bottom:16px; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th, td { text-align:left; padding:6px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { color:var(--muted); font-weight:600; }
+  .ok { color:var(--ok); } .bad { color:var(--bad); }
+  input, select, button { font:inherit; padding:6px 10px; border-radius:6px; border:1px solid var(--line); background:var(--card); color:var(--fg); }
+  button { cursor:pointer; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .scroll { overflow-x:auto; }
+  code { font-size:12px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>CameraDVR – Painel da empresa</h1>
+  <div class="card row" id="login">
+    <input id="token" type="password" placeholder="Token de acesso" size="40">
+    <button onclick="entrar()">Entrar</button>
+  </div>
+  <div id="conteudo" hidden>
+    <div class="card"><h2>Assinaturas</h2><div class="scroll" id="subs"></div></div>
+    <div class="card"><h2>Computadores</h2><div class="scroll" id="devs"></div></div>
+    <div class="card">
+      <h2>Registro de cliques</h2>
+      <div class="row">
+        <select id="filtroDev"><option value="">Todos os computadores</option></select>
+        <button onclick="carregarEventos()">Atualizar</button>
+      </div>
+      <div class="scroll" id="evs"></div>
+    </div>
+  </div>
+</main>
+<script>
+let TOKEN = "";
+try { TOKEN = sessionStorage.getItem("cdvr_token") || ""; } catch (e) {}
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmt = d => d ? new Date(d).toLocaleString("pt-BR") : "—";
+async function api(path) {
+  const r = await fetch(path, { headers: { Authorization: "Bearer " + TOKEN } });
+  if (!r.ok) throw new Error((await r.json()).detail || r.status);
+  return r.json();
+}
+async function entrar() {
+  TOKEN = document.getElementById("token").value.trim() || TOKEN;
+  try {
+    const me = await api("/api/customer/me");
+    try { sessionStorage.setItem("cdvr_token", TOKEN); } catch (e) {}
+    document.getElementById("login").hidden = true;
+    document.getElementById("conteudo").hidden = false;
+    document.getElementById("subs").innerHTML = "<table><tr><th>Plano</th><th>Chave de licença</th><th>Situação</th><th>Válida até</th><th>Computadores</th></tr>" +
+      me.subscriptions.map(s => `<tr><td>${esc(s.plan)}</td><td><code>${esc(s.license_key)}</code></td>
+        <td class="${s.can_use ? "ok" : "bad"}">${s.can_use ? "Liberada" : "Bloqueada: " + esc(s.reason)}</td>
+        <td>${fmt(s.current_period_end)}</td><td>${s.devices_in_use} / ${s.max_devices}</td></tr>`).join("") + "</table>";
+    const devs = await api("/api/customer/devices");
+    document.getElementById("devs").innerHTML = "<table><tr><th>Computador</th><th>IP local</th><th>Endereço RTSP</th><th>Último contato</th></tr>" +
+      devs.map(d => `<tr><td>${esc(d.label || d.hostname)}</td><td>${esc(d.local_ip)}</td>
+        <td><code>${d.local_ip ? "rtsp://" + esc(d.local_ip) + ":8554/tela" : "—"}</code></td><td>${fmt(d.last_seen)}</td></tr>`).join("") + "</table>";
+    const sel = document.getElementById("filtroDev");
+    sel.innerHTML = '<option value="">Todos os computadores</option>' + devs.map(d => `<option value="${d.id}">${esc(d.label || d.hostname)}</option>`).join("");
+    window._devs = Object.fromEntries(devs.map(d => [d.id, d.label || d.hostname]));
+    carregarEventos();
+  } catch (e) { alert("Falha ao entrar: " + e.message); }
+}
+async function carregarEventos() {
+  const id = document.getElementById("filtroDev").value;
+  const evs = await api("/api/customer/events?limit=500" + (id ? "&device_id=" + id : ""));
+  document.getElementById("evs").innerHTML = "<table><tr><th>Data/hora</th><th>Computador</th><th>Usuário</th><th>Evento</th><th>Programa</th><th>Janela</th></tr>" +
+    evs.map(e => `<tr><td>${fmt(e.ts)}</td><td>${esc(window._devs[e.device_id])}</td><td>${esc(e.user_name)}</td>
+      <td>${e.kind === "click" ? "Clique " + esc(e.button) + " (" + e.x + "," + e.y + ")" : esc(e.kind)}</td>
+      <td>${esc(e.process_name)}</td><td>${esc(e.window_title)}</td></tr>`).join("") + "</table>";
+}
+if (TOKEN) entrar();
+</script>
+</body>
+</html>

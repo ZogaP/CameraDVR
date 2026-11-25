@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+*.db
+.env
+# Chave PRIVADA de licença nunca vai para o git
+keys/
+*private*.pem
+# Binários baixados no build
+agent/bin/
+agent/build/tmp/
+agent/dist/
+agent/*.spec
