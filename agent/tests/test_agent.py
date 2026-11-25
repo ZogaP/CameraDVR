@@ -158,6 +158,7 @@ def test_agent_against_real_server(monkeypatch):
         c = http.post("/api/admin/customers", json={"name": "E", "email": "e@e.com"}, headers=A).json()
         s = http.post("/api/admin/subscriptions", json={"customer_id": c["id"], "plan_code": "profissional"}, headers=A).json()
         cfg = Config(license_key=s["license_key"])
+        t = http.get("/api/legal/terms").json()
         lc = LicenseClient(cfg, State(), public_key=KEY.public_key(), http=http)
 
         lic = lc.refresh()
@@ -165,9 +166,48 @@ def test_agent_against_real_server(monkeypatch):
 
         http.post(f"/api/admin/subscriptions/{s['id']}/payments", json={}, headers=A)
         lic = lc.refresh()
+        assert not lic.valid and "Termos" in lic.reason  # pagou, mas sem aceite: não ativa
+
+        lc.state.acceptance = {"terms_version": t["version"], "terms_sha256": t["sha256"],
+                               "name": "Maria Gestora", "document": "52998224725", "role": "Diretora"}
+        lic = lc.refresh()
         assert lic.valid and lic.features["max_fps"] == 10  # pagou: libera
         assert lc.refresh(streaming=True).valid  # heartbeat
 
         http.post(f"/api/admin/subscriptions/{s['id']}/cancel?immediate=true", headers=A)
         lic = lc.refresh()
         assert not lic.valid and lc.state.token is None  # cancelou: bloqueia na hora
+
+
+def test_notice_ack_queue_and_flush(monkeypatch):
+    from cameradvr_agent import ui
+
+    notice = {"version": "v1", "sha256": "a" * 64, "text": "aviso"}
+    ui.queue_ack(notice, "ana")
+    sent = []
+
+    class FakeHttp:
+        def post(self, path, headers, json):
+            sent.append((path, json))
+
+            class R:
+                status_code = 201
+            return R()
+
+    class FakeClient:
+        http = FakeHttp()
+
+        def _auth_headers(self):
+            return {}
+
+    ui.flush_acks(FakeClient())
+    assert sent[0][0] == "/api/agent/notice-ack" and sent[0][1]["user_name"] == "ana"
+    ui.flush_acks(FakeClient())
+    assert len(sent) == 1  # fila esvaziada
+
+
+def test_ui_pages_exist():
+    from cameradvr_agent import ui
+
+    for name in ("instalador.html", "status.html", "aviso.html"):
+        assert "pywebview" in ui.page(name)

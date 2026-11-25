@@ -55,7 +55,43 @@ class ManualPaymentIn(BaseModel):
     reference: str | None = None
 
 
+class AcceptanceIn(BaseModel):
+    """Aceite dos termos pelo responsável da empresa."""
+    terms_version: str
+    terms_sha256: str = Field(min_length=64, max_length=64)
+    name: str = Field(min_length=3, max_length=200)
+    document: str = Field(description="CPF do responsável")
+    role: str = Field(min_length=2, max_length=100, description="Cargo")
+
+
+class NoticeAckIn(BaseModel):
+    user_name: str = Field(max_length=200)
+    notice_version: str
+    notice_sha256: str = Field(min_length=64, max_length=64)
+    ts: datetime
+
+
+class AcceptanceOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    kind: str
+    doc_version: str
+    doc_sha256: str
+    name: str | None
+    document: str | None
+    role: str | None
+    user_name: str | None
+    hostname: str | None
+    ip: str | None
+    accepted_at: datetime
+
+
+class CancelIn(BaseModel):
+    confirm: str = Field(description='Digite "CANCELAR" para confirmar')
+
+
 class ActivateIn(BaseModel):
+    acceptance: AcceptanceIn | None = None
     license_key: str
     machine_id: str = Field(min_length=8, max_length=128)
     hostname: str
@@ -115,6 +151,7 @@ class EventOut(EventIn):
 
 
 class CheckoutIn(BaseModel):
+    acceptance: AcceptanceIn
     plan_code: str
     name: str
     email: str

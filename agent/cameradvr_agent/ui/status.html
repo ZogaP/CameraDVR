@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CameraDVR</title>
+<style>
+  :root { --bg:#f3f5f8; --card:#fff; --fg:#141a22; --muted:#5d6876; --line:#e3e7ed; --soft:#f6f8fb;
+    --brand:#1f5eff; --rec:#d92d20; --rec-soft:#fdecea; --ok:#13803b; --ok-soft:#e5f5ea; --off:#8a94a3; --off-soft:#eef0f3; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:14px/1.5 "Segoe UI", Inter, system-ui, sans-serif; background:var(--bg); color:var(--fg); }
+  .hero { background:var(--card); border-bottom:1px solid var(--line); padding:22px 22px 18px; text-align:center; }
+  .rec { width:64px; height:64px; margin:0 auto 10px; border-radius:50%; display:grid; place-items:center; background:var(--rec-soft); }
+  .rec i { width:22px; height:22px; border-radius:50%; background:var(--rec); animation:pulse 1.6s infinite; }
+  .hero.off .rec { background:var(--off-soft); } .hero.off .rec i { background:var(--off); animation:none; }
+  @keyframes pulse { 0%,100% { opacity:1 } 50% { opacity:.35 } }
+  .title { font-size:18px; font-weight:700; }
+  .sub { color:var(--muted); font-size:13px; }
+  main { padding:16px 18px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin-bottom:12px; }
+  .card h2 { font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin:0 0 8px; font-weight:600; }
+  ul { list-style:none; margin:0; padding:0; }
+  li { display:flex; gap:10px; align-items:flex-start; padding:4px 0; font-size:13.5px; }
+  li svg { flex:none; margin-top:3px; }
+  .yes { color:var(--rec); } .no { color:var(--ok); }
+  .kv { display:grid; grid-template-columns:auto 1fr; gap:4px 14px; font-size:13px; }
+  .kv span:nth-child(odd) { color:var(--muted); }
+  footer { padding:0 18px 18px; display:flex; gap:8px; }
+  button { flex:1; font:inherit; font-weight:600; font-size:13px; padding:9px 12px; border-radius:8px; border:1px solid var(--line); background:var(--card); color:var(--fg); cursor:pointer; }
+  .notice { white-space:pre-wrap; font-size:12.5px; color:var(--fg); max-height:180px; overflow:auto; }
+  [hidden] { display:none !important; }
+</style>
+</head>
+<body>
+<div class="hero" id="hero">
+  <div class="rec"><i></i></div>
+  <div class="title" id="title">Carregando…</div>
+  <div class="sub" id="sub"></div>
+</div>
+<main>
+  <section class="card">
+    <h2>O que é monitorado</h2>
+    <ul>
+      <li class="yes"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="6"/></svg><span style="color:var(--fg)">Imagem da tela, enviada à gravação (DVR) da empresa</span></li>
+      <li class="yes"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="6"/></svg><span style="color:var(--fg)">Cliques do mouse, programa e título da janela em uso</span></li>
+      <li class="no"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span style="color:var(--fg)"><b>Não</b> registra teclas digitadas nem senhas</span></li>
+    </ul>
+  </section>
+  <section class="card">
+    <h2>Este computador</h2>
+    <div class="kv">
+      <span>Computador</span><b id="host"></b>
+      <span>Usuário</span><span id="user"></span>
+      <span>Licença</span><span id="lic"></span>
+      <span>Versão</span><span id="ver"></span>
+    </div>
+  </section>
+  <section class="card" id="noticeCard" hidden>
+    <h2>Aviso da empresa</h2>
+    <div class="notice" id="notice"></div>
+  </section>
+</main>
+<footer>
+  <button onclick="toggleNotice()" id="btnNotice">Ver aviso completo</button>
+  <button onclick="window.pywebview.api.close()">Fechar</button>
+</footer>
+<script>
+const $ = id => document.getElementById(id);
+function toggleNotice() { const c = $("noticeCard"); c.hidden = !c.hidden; $("btnNotice").textContent = c.hidden ? "Ver aviso completo" : "Ocultar aviso"; }
+async function refresh() {
+  const d = await window.pywebview.api.get_status();
+  const s = d.status || {};
+  const active = d.agent_running && s.valid;
+  $("hero").className = "hero" + (active ? "" : " off");
+  $("title").textContent = active ? "Este computador está sendo monitorado" : (d.agent_running ? "Monitoramento pausado" : "Agente parado");
+  $("sub").textContent = active ? (s.streaming ? "Tela transmitida para a gravação da empresa" : "Iniciando transmissão…") : (s.reason || "");
+  $("host").textContent = d.hostname; $("user").textContent = d.user; $("ver").textContent = d.version;
+  $("lic").textContent = s.valid ? "válida" + (s.expires_at ? " (verificada até " + new Date(s.expires_at * 1000).toLocaleString("pt-BR", { dateStyle:"short", timeStyle:"short" }) + ")" : "") : (s.reason || "—");
+  if (d.notice) $("notice").textContent = d.notice.text;
+}
+window.addEventListener("pywebviewready", () => { refresh(); setInterval(refresh, 5000); });
+if (window.pywebview && window.pywebview.api) { refresh(); setInterval(refresh, 5000); }
+</script>
+</body>
+</html>

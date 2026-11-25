@@ -4,11 +4,11 @@ from __future__ import annotations
 import hmac
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from .. import schemas
+from .. import acceptance, legal, schemas
 from ..db import get_db
 from ..licensing import entitlement, issue_token
 from ..models import ActivityEvent, Device, Subscription, new_token
@@ -37,11 +37,12 @@ def current_device(
 
 
 @router.post("/activate", response_model=schemas.ActivateOut)
-def activate(body: schemas.ActivateIn, db: Session = Depends(get_db)):
+def activate(body: schemas.ActivateIn, request: Request, db: Session = Depends(get_db)):
     sub = db.scalar(select(Subscription).where(Subscription.license_key == body.license_key.strip().upper()))
     if sub is None:
         raise HTTPException(status_code=404, detail="chave de licença inválida")
     _require_entitled(sub)
+    acc = acceptance.validate(body.acceptance)
 
     device = db.scalar(
         select(Device).where(Device.subscription_id == sub.id, Device.machine_id == body.machine_id)
@@ -66,6 +67,11 @@ def activate(body: schemas.ActivateIn, db: Session = Depends(get_db)):
     device.last_seen = datetime.now(timezone.utc)
     db.flush()
 
+    acceptance.record(
+        db, request, kind="instalacao", customer_id=sub.customer_id, subscription_id=sub.id,
+        device_id=device.id, doc_version=acc.terms_version, doc_sha256=acc.terms_sha256,
+        name=acc.name, document=acc.document, role=acc.role, hostname=body.hostname,
+    )
     token, exp = issue_token(sub, device)
     db.commit()
     return schemas.ActivateOut(device_id=device.id, device_secret=device.device_secret, token=token, expires_at=exp)
@@ -104,3 +110,24 @@ def push_events(
     device.last_seen = datetime.now(timezone.utc)
     db.commit()
     return {"accepted": len(body.events)}
+
+
+@router.post("/notice-ack", status_code=201)
+def notice_ack(
+    body: schemas.NoticeAckIn,
+    request: Request,
+    device: Device = Depends(current_device),
+    db: Session = Depends(get_db),
+):
+    """Registra a ciência do colaborador sobre o aviso de monitoramento."""
+    cur = legal.notice()
+    if body.notice_sha256 != cur["sha256"]:
+        raise HTTPException(409, "aviso desatualizado")
+    acceptance.record(
+        db, request, kind="colaborador", customer_id=device.subscription.customer_id,
+        subscription_id=device.subscription_id, device_id=device.id,
+        doc_version=body.notice_version, doc_sha256=body.notice_sha256,
+        user_name=body.user_name, hostname=device.hostname,
+    )
+    db.commit()
+    return {"ok": True}

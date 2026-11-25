@@ -1,7 +1,8 @@
 # Instala o agente no PC (executar como Administrador, dentro da pasta dist\CameraDVR).
-#   powershell -ExecutionPolicy Bypass -File instalar.ps1 -Chave CDVR-XXXXX-XXXXX-XXXXX-XXXXX -Servidor https://licencas.seudominio.com.br
+#   powershell -ExecutionPolicy Bypass -File instalar.ps1 -Servidor https://licencas.seudominio.com.br [-Chave CDVR-...]
+# Abre o assistente: chave de licença -> leitura e ACEITE dos Termos de Uso (nome, CPF, cargo) -> dados do DVR.
 param(
-    [Parameter(Mandatory = $true)][string]$Chave,
+    [string]$Chave = "",
     [Parameter(Mandatory = $true)][string]$Servidor
 )
 $ErrorActionPreference = "Stop"
@@ -20,8 +21,10 @@ $data = "$env:ProgramData\CameraDVR"
 New-Item -ItemType Directory -Force -Path $data | Out-Null
 icacls $data /grant "*S-1-5-32-545:(OI)(CI)M" /T | Out-Null
 
-& "$dest\CameraDVR.exe" --servidor $Servidor --ativar $Chave
-if ($LASTEXITCODE -ne 0) { throw "Ativação falhou. Verifique a chave e se a assinatura está paga." }
+$argv = @("--servidor", $Servidor, "--instalar")
+if ($Chave) { $argv += @("--chave", $Chave) }
+$p = Start-Process -FilePath "$dest\CameraDVR.exe" -ArgumentList $argv -Wait -PassThru
+if ($p.ExitCode -ne 0) { throw "Instalação não concluída (termos não aceitos ou licença não ativada)." }
 
 # A captura de tela precisa rodar na sessão do usuário logado (serviços do Windows não enxergam a tela),
 # por isso usamos uma tarefa agendada "ao fazer logon" de qualquer usuário.
@@ -32,6 +35,5 @@ $settings  = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGo
               -ExecutionTimeLimit ([TimeSpan]::Zero) -RestartCount 999 -RestartInterval (New-TimeSpan -Minutes 1)
 Register-ScheduledTask -TaskName "CameraDVR" -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Force | Out-Null
 
-& "$dest\CameraDVR.exe" --info
-Write-Host "`nInstalado. Cadastre os dados acima no DVR/NVR (ONVIF ou RTSP). O agente inicia no próximo logon."
+Write-Host "Instalado. O agente inicia agora e a cada logon."
 Start-ScheduledTask -TaskName "CameraDVR"

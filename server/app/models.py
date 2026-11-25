@@ -5,6 +5,7 @@ import secrets
 from datetime import datetime, timezone
 
 from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy.types import TypeDecorator
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .db import Base
@@ -12,6 +13,27 @@ from .db import Base
 
 def utcnow() -> datetime:
     return datetime.now(timezone.utc)
+
+
+class UTCDateTime(TypeDecorator):
+    """Sempre grava em UTC e devolve com fuso (o SQLite perde o fuso sem isto)."""
+
+    impl = DateTime(timezone=True)
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        if value is not None:
+            if value.tzinfo is None:
+                value = value.replace(tzinfo=timezone.utc)
+            value = value.astimezone(timezone.utc)
+            if dialect.name == "sqlite":
+                value = value.replace(tzinfo=None)
+        return value
+
+    def process_result_value(self, value, dialect):
+        if value is not None and value.tzinfo is None:
+            value = value.replace(tzinfo=timezone.utc)
+        return value
 
 
 def new_license_key() -> str:
@@ -56,7 +78,7 @@ class Customer(Base):
     document: Mapped[str | None] = mapped_column(String(30), nullable=True)  # CNPJ/CPF
     # Token de acesso do cliente ao painel/API dele.
     api_token: Mapped[str] = mapped_column(String(64), unique=True, default=new_token)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
 
     subscriptions: Mapped[list["Subscription"]] = relationship(back_populates="customer")
 
@@ -72,10 +94,10 @@ class Subscription(Base):
     license_key: Mapped[str] = mapped_column(String(40), unique=True, default=new_license_key)
     # pending (aguardando pagamento) | active | past_due | canceled
     status: Mapped[str] = mapped_column(String(20), default="pending")
-    current_period_end: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    current_period_end: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
     gateway: Mapped[str | None] = mapped_column(String(30), nullable=True)
     gateway_ref: Mapped[str | None] = mapped_column(String(100), nullable=True, index=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
 
     customer: Mapped[Customer] = relationship(back_populates="subscriptions")
     plan: Mapped[Plan] = relationship()
@@ -91,7 +113,7 @@ class Payment(Base):
     amount_cents: Mapped[int] = mapped_column(Integer)
     gateway: Mapped[str] = mapped_column(String(30))
     gateway_payment_id: Mapped[str | None] = mapped_column(String(100), nullable=True, unique=True)
-    paid_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    paid_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
 
     subscription: Mapped[Subscription] = relationship(back_populates="payments")
 
@@ -110,8 +132,8 @@ class Device(Base):
     # Token secreto do dispositivo, usado nos heartbeats e envio de eventos.
     device_secret: Mapped[str] = mapped_column(String(64), default=new_token)
     active: Mapped[bool] = mapped_column(Boolean, default=True)
-    last_seen: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    last_seen: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
 
     subscription: Mapped[Subscription] = relationship(back_populates="devices")
 
@@ -121,7 +143,7 @@ class ActivityEvent(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     device_id: Mapped[int] = mapped_column(ForeignKey("devices.id"), index=True)
-    ts: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    ts: Mapped[datetime] = mapped_column(UTCDateTime(), index=True)
     kind: Mapped[str] = mapped_column(String(20))  # click | window | session
     button: Mapped[str | None] = mapped_column(String(10), nullable=True)
     x: Mapped[int | None] = mapped_column(Integer, nullable=True)
@@ -130,3 +152,26 @@ class ActivityEvent(Base):
     process_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
     user_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
     extra: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+
+
+class TermsAcceptance(Base):
+    """Prova de aceite: quem aceitou, qual texto (hash), quando, de onde."""
+
+    __tablename__ = "terms_acceptances"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    customer_id: Mapped[int] = mapped_column(ForeignKey("customers.id"), index=True)
+    subscription_id: Mapped[int | None] = mapped_column(ForeignKey("subscriptions.id"), nullable=True)
+    device_id: Mapped[int | None] = mapped_column(ForeignKey("devices.id"), nullable=True)
+    # contratacao (checkout) | instalacao (responsável no PC) | colaborador (ciência do funcionário)
+    kind: Mapped[str] = mapped_column(String(20))
+    doc_version: Mapped[str] = mapped_column(String(20))
+    doc_sha256: Mapped[str] = mapped_column(String(64))
+    name: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    document: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    role: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    user_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    hostname: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    ip: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    user_agent: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    accepted_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)

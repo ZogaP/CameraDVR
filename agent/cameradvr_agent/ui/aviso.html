@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aviso de monitoramento</title>
+<style>
+  :root { --bg:#f3f5f8; --card:#fff; --fg:#141a22; --muted:#5d6876; --line:#e3e7ed; --soft:#f6f8fb; --brand:#1f5eff; --warn:#b54708; --warn-soft:#fef0c7; }
+  * { box-sizing:border-box; }
+  html, body { height:100%; }
+  body { margin:0; font:14px/1.5 "Segoe UI", Inter, system-ui, sans-serif; background:var(--bg); color:var(--fg); display:flex; flex-direction:column; }
+  .top { background:var(--card); border-bottom:1px solid var(--line); padding:20px 22px; display:flex; gap:14px; align-items:center; }
+  .ic { width:46px; height:46px; border-radius:12px; background:var(--warn-soft); color:var(--warn); display:grid; place-items:center; flex:none; }
+  h1 { font-size:17px; margin:0; } .sub { color:var(--muted); font-size:12.5px; }
+  main { flex:1; padding:16px 22px; overflow:auto; }
+  .text { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px 18px; white-space:pre-wrap; font-size:13.5px; line-height:1.6; }
+  footer { background:var(--card); border-top:1px solid var(--line); padding:14px 22px; display:flex; align-items:center; gap:12px; }
+  footer .who { color:var(--muted); font-size:12px; margin-right:auto; }
+  button { font:inherit; font-weight:600; font-size:14px; padding:10px 20px; border-radius:8px; border:1px solid var(--brand); background:var(--brand); color:#fff; cursor:pointer; }
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 3l9.5 17h-19z"/><path d="M12 10v4.5M12 17.5v.01"/></svg></div>
+  <div><h1>Aviso de monitoramento</h1><div class="sub">Leia com atenção antes de continuar</div></div>
+</div>
+<main><div class="text" id="text">Carregando…</div></main>
+<footer>
+  <span class="who" id="who"></span>
+  <button onclick="window.pywebview.api.acknowledge()">Li e estou ciente</button>
+</footer>
+<script>
+async function init() {
+  const d = await window.pywebview.api.get_notice();
+  document.getElementById("text").textContent = d.notice ? d.notice.text :
+    "Este computador é monitorado pela empresa: a tela é transmitida ao sistema de gravação e os cliques são registrados. Teclas digitadas e senhas não são registradas.";
+  document.getElementById("who").textContent = `Usuário: ${d.user} · Computador: ${d.hostname}`;
+}
+window.addEventListener("pywebviewready", init);
+if (window.pywebview && window.pywebview.api) init();
+</script>
+</body>
+</html>

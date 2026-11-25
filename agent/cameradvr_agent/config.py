@@ -46,13 +46,8 @@ class Config:
     bitrate_kbps: int = 1500
     # Registro de atividade
     track_clicks: bool = True
-    # Mostrar aviso ao usuário do PC (transparência / LGPD). Recomendado manter ligado.
-    show_notice: bool = True
-    notice_text: str = (
-        "Este computador é monitorado pela empresa conforme a política interna de uso: "
-        "a tela é transmitida ao sistema de vigilância e os cliques são registrados. "
-        "Não são registradas teclas digitadas nem senhas."
-    )
+    # O aviso ao colaborador (ícone na bandeja + ciência no 1º login) é SEMPRE exibido:
+    # não existe opção para ocultá-lo (exigência dos Termos de Uso e proteção jurídica).
 
     @classmethod
     def load(cls) -> "Config":
@@ -78,6 +73,8 @@ class State:
     license_key: str | None = None
     # Maior horário já visto; detecta relógio voltado para trás (burlar expiração offline).
     max_seen: float = 0.0
+    # Aceite dos Termos feito na instalação (reenviado se o PC precisar ser reativado).
+    acceptance: dict | None = None
 
     @classmethod
     def load(cls) -> "State":

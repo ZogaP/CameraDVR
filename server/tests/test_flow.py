@@ -17,11 +17,21 @@ def make_paid_subscription(client, plan="basico", email="rh@empresa.com"):
     return c, s
 
 
-def activate(client, key, mid="machine-0001", host="PC-01"):
-    return client.post(
-        "/api/agent/activate",
-        json={"license_key": key, "machine_id": mid, "hostname": host, "local_ip": "192.168.0.10"},
-    )
+def terms_acceptance(**over):
+    from app import legal
+
+    t = legal.terms()
+    return {"terms_version": t["version"], "terms_sha256": t["sha256"], "name": "Maria Gestora",
+            "document": "529.982.247-25", "role": "Diretora", **over}
+
+
+def activate(client, key, mid="machine-0001", host="PC-01", acceptance="default"):
+    body = {"license_key": key, "machine_id": mid, "hostname": host, "local_ip": "192.168.0.10"}
+    if acceptance == "default":
+        body["acceptance"] = terms_acceptance()
+    elif acceptance is not None:
+        body["acceptance"] = acceptance
+    return client.post("/api/agent/activate", json=body)
 
 
 def test_admin_requires_key(client):
@@ -112,7 +122,7 @@ def test_mercadopago_checkout_and_webhook(client, monkeypatch):
     from app.routes import billing
 
     monkeypatch.setattr(billing, "mp_post", lambda path, payload: {"id": "pre-123", "init_point": "https://mp/checkout"})
-    r = client.post("/api/billing/checkout", json={"plan_code": "profissional", "name": "Loja", "email": "loja@x.com"})
+    r = client.post("/api/billing/checkout", json={"plan_code": "profissional", "name": "Loja", "email": "loja@x.com", "acceptance": terms_acceptance()})
     assert r.status_code == 200
     out = r.json()
     assert out["checkout_url"] == "https://mp/checkout"

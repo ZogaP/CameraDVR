@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Instalação do CameraDVR</title>
+<style>
+  :root { --bg:#f3f5f8; --card:#fff; --fg:#141a22; --muted:#5d6876; --line:#e3e7ed; --soft:#f6f8fb;
+    --brand:#1f5eff; --brand-soft:#e8efff; --ok:#13803b; --ok-soft:#e5f5ea; --bad:#c62828; --bad-soft:#fdeaea; }
+  * { box-sizing:border-box; }
+  html, body { height:100%; }
+  body { margin:0; font:14px/1.5 "Segoe UI", Inter, system-ui, sans-serif; background:var(--bg); color:var(--fg);
+    display:flex; flex-direction:column; }
+  header { background:var(--card); border-bottom:1px solid var(--line); padding:14px 24px; display:flex; align-items:center; gap:10px; }
+  header b { font-size:16px; }
+  header .v { color:var(--muted); font-size:12px; margin-left:auto; }
+  .steps { display:flex; gap:8px; padding:14px 24px 0; }
+  .step { flex:1; display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--muted); font-weight:600; }
+  .step .n { width:24px; height:24px; border-radius:50%; display:grid; place-items:center; background:var(--line); color:var(--muted); font-size:12px; flex:none; }
+  .step.on .n { background:var(--brand); color:#fff; } .step.on { color:var(--fg); }
+  .step.done .n { background:var(--ok); color:#fff; }
+  .step .ln { flex:1; height:2px; background:var(--line); }
+  main { flex:1; padding:16px 24px; overflow:auto; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:20px; }
+  h1 { font-size:18px; margin:0 0 4px; } p.lead { color:var(--muted); margin:0 0 16px; }
+  label { display:block; font-size:12.5px; font-weight:600; margin:0 0 5px; }
+  input[type=text] { width:100%; font:inherit; padding:9px 11px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--fg); }
+  input.mono { font-family:Consolas, ui-monospace, monospace; letter-spacing:.04em; text-transform:uppercase; }
+  input:focus { outline:2px solid var(--brand-soft); border-color:var(--brand); }
+  .row { display:grid; grid-template-columns:1.4fr 1fr 1fr; gap:12px; margin-top:14px; }
+  .terms { height:250px; overflow:auto; border:1px solid var(--line); border-radius:10px; padding:14px 16px; background:var(--soft);
+    font-size:12.5px; line-height:1.55; white-space:pre-wrap; }
+  .hint { font-size:12px; color:var(--muted); margin-top:6px; }
+  .check { display:flex; gap:10px; align-items:flex-start; margin-top:14px; padding:12px; border:1px solid var(--line); border-radius:10px; font-size:13px; }
+  .check input { margin-top:3px; width:16px; height:16px; flex:none; }
+  .check.off { opacity:.55; }
+  footer { background:var(--card); border-top:1px solid var(--line); padding:12px 24px; display:flex; gap:8px; justify-content:flex-end; align-items:center; }
+  footer .msg { margin-right:auto; color:var(--bad); font-size:13px; }
+  button { font:inherit; font-weight:600; font-size:13px; padding:9px 18px; border-radius:8px; border:1px solid var(--line); background:var(--card); color:var(--fg); cursor:pointer; }
+  button.primary { background:var(--brand); border-color:var(--brand); color:#fff; }
+  button:disabled { opacity:.5; cursor:not-allowed; }
+  .ok-head { display:flex; gap:14px; align-items:center; margin-bottom:14px; }
+  .ok-icon { width:44px; height:44px; border-radius:50%; background:var(--ok-soft); color:var(--ok); display:grid; place-items:center; flex:none; }
+  .kv { display:grid; grid-template-columns:150px 1fr auto; gap:0; border:1px solid var(--line); border-radius:10px; overflow:hidden; }
+  .kv > div { padding:10px 12px; border-bottom:1px solid var(--line); }
+  .kv > div:nth-last-child(-n+3) { border-bottom:none; }
+  .kv .k { color:var(--muted); font-size:12.5px; background:var(--soft); }
+  .kv .v { font-family:Consolas, ui-monospace, monospace; font-size:13px; word-break:break-all; }
+  .kv button { padding:4px 10px; font-size:12px; }
+  .kv .c { display:flex; align-items:center; }
+  .note { margin-top:14px; font-size:12.5px; color:var(--muted); background:var(--brand-soft); border-radius:10px; padding:12px 14px; }
+  .note b { color:var(--fg); }
+  [hidden] { display:none !important; }
+</style>
+</head>
+<body>
+<header>
+  <svg width="26" height="26" viewBox="0 0 32 32"><rect x="2" y="8" width="20" height="16" rx="4" fill="#1f5eff"/><path d="M22 14l8-5v14l-8-5z" fill="#1f5eff"/><circle cx="12" cy="16" r="4" fill="#fff"/></svg>
+  <b>Instalação do CameraDVR</b>
+  <span class="v" id="ver"></span>
+</header>
+<div class="steps">
+  <div class="step" id="s1"><span class="n">1</span>Licença<span class="ln"></span></div>
+  <div class="step" id="s2"><span class="n">2</span>Termos de Uso<span class="ln"></span></div>
+  <div class="step" id="s3"><span class="n">3</span>Pronto</div>
+</div>
+
+<main>
+  <!-- Etapa 1 -->
+  <section class="card" id="p1">
+    <h1>Chave de licença</h1>
+    <p class="lead">Informe a chave recebida no e-mail da contratação. Ela vincula este computador ao seu plano.</p>
+    <label for="key">Chave de licença</label>
+    <input type="text" class="mono" id="key" placeholder="CDVR-XXXXX-XXXXX-XXXXX-XXXXX" autocomplete="off">
+    <div class="hint">Computador: <b id="host"></b></div>
+  </section>
+
+  <!-- Etapa 2 -->
+  <section class="card" id="p2" hidden>
+    <h1>Termos de Uso e responsabilidade</h1>
+    <p class="lead">Leia até o final. O aceite é registrado com seu nome, CPF, data, hora, IP e este computador.</p>
+    <div class="terms" id="terms">Carregando…</div>
+    <div class="hint" id="scrollHint">Role o texto até o final para continuar.</div>
+    <div class="row">
+      <div><label for="nome">Nome completo do responsável</label><input type="text" id="nome" autocomplete="off"></div>
+      <div><label for="cpf">CPF</label><input type="text" id="cpf" inputmode="numeric" maxlength="14" placeholder="000.000.000-00" autocomplete="off"></div>
+      <div><label for="cargo">Cargo</label><input type="text" id="cargo" placeholder="ex.: Diretor, Gerente de TI" autocomplete="off"></div>
+    </div>
+    <label class="check off" id="checkWrap">
+      <input type="checkbox" id="aceito" disabled>
+      <span>Li e aceito os Termos de Uso. Declaro que tenho poderes para representar a empresa, que este computador
+      pertence a ela e que os usuários foram <b>informados previamente</b> sobre o monitoramento. A empresa é a única
+      responsável pelo uso do sistema e pelos dados obtidos.</span>
+    </label>
+  </section>
+
+  <!-- Etapa 3 -->
+  <section class="card" id="p3" hidden>
+    <div class="ok-head">
+      <div class="ok-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+      <div><h1>Computador ativado</h1><div class="hint" style="margin:0">Cadastre os dados abaixo no DVR/NVR como uma câmera IP.</div></div>
+    </div>
+    <div class="kv" id="kv"></div>
+    <div class="note">
+      <b>No DVR:</b> vá em <i>Câmeras IP → Buscar</i>. Este PC aparece como <b>CameraDVR ScreenCam</b>.
+      Se o DVR não tiver ONVIF, use "RTSP personalizado" com o endereço RTSP.<br>
+      Guarde a senha da câmera: ela também fica em <i>C:\ProgramData\CameraDVR\config.json</i>.
+    </div>
+  </section>
+</main>
+
+<footer>
+  <span class="msg" id="msg"></span>
+  <button id="back" onclick="go(step - 1)" hidden>Voltar</button>
+  <button class="primary" id="next" onclick="next()">Continuar</button>
+</footer>
+
+<script>
+const $ = id => document.getElementById(id);
+let step = 1, TERMS = null, CTX = {};
+const api = () => window.pywebview.api;
+
+function onlyDigits(s) { return s.replace(/\D/g, ""); }
+function validCpf(c) {
+  const d = onlyDigits(c);
+  if (d.length !== 11 || /^(\d)\1+$/.test(d)) return false;
+  for (const n of [9, 10]) {
+    let t = 0; for (let i = 0; i < n; i++) t += +d[i] * (n + 1 - i);
+    if ((t * 10 % 11) % 10 !== +d[n]) return false;
+  }
+  return true;
+}
+$("cpf").addEventListener("input", e => {
+  const d = onlyDigits(e.target.value).slice(0, 11);
+  e.target.value = d.replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+  validate();
+});
+["nome", "cargo", "key"].forEach(id => $(id).addEventListener("input", validate));
+$("aceito").addEventListener("change", validate);
+$("terms").addEventListener("scroll", e => {
+  const t = e.target;
+  if (t.scrollTop + t.clientHeight >= t.scrollHeight - 8) {
+    $("aceito").disabled = false; $("checkWrap").classList.remove("off"); $("scrollHint").hidden = true;
+  }
+});
+
+function validate() {
+  $("msg").textContent = "";
+  if (step === 3) $("next").disabled = false;
+  if (step === 1) $("next").disabled = !/^CDVR(-[0-9A-F]{5}){4}$/i.test($("key").value.trim());
+  if (step === 2) $("next").disabled = !($("aceito").checked && $("nome").value.trim().split(/\s+/).length >= 2 &&
+    validCpf($("cpf").value) && $("cargo").value.trim().length >= 2 && TERMS);
+  if (step === 2 && $("cpf").value.length === 14 && !validCpf($("cpf").value)) $("msg").textContent = "CPF inválido.";
+}
+
+function go(n) {
+  step = n;
+  [1, 2, 3].forEach(i => { $("p" + i).hidden = i !== n; $("s" + i).className = "step" + (i < n ? " done" : i === n ? " on" : ""); });
+  $("back").hidden = n !== 2;
+  $("next").textContent = n === 1 ? "Continuar" : n === 2 ? "Aceitar e ativar" : "Concluir";
+  if (n === 2 && !TERMS) loadTerms();
+  validate();
+}
+
+async function loadTerms() {
+  const r = await api().get_terms();
+  if (!r.ok) { $("terms").textContent = r.error; return; }
+  TERMS = r;
+  $("terms").textContent = r.text.replace(/^#+\s*/gm, "").replace(/\*\*/g, "");
+  validate();
+}
+
+async function next() {
+  if (step === 1) return go(2);
+  if (step === 3) return api().close();
+  $("next").disabled = true; $("next").textContent = "Ativando…";
+  const r = await api().activate($("key").value.trim(), {
+    terms_version: TERMS.version, terms_sha256: TERMS.sha256,
+    name: $("nome").value.trim(), document: $("cpf").value, role: $("cargo").value.trim(),
+  });
+  if (!r.ok) { $("next").textContent = "Aceitar e ativar"; $("next").disabled = false; $("msg").textContent = "Não foi possível ativar: " + r.error; return; }
+  const i = r.info;
+  const rows = [["Endereço ONVIF", i.onvif], ["Endereço RTSP", i.rtsp], ["IP do computador", i.ip], ["Porta ONVIF", String(i.onvif_port)], ["Usuário", i.user], ["Senha", i.password]];
+  $("kv").innerHTML = rows.map(([k, v]) => `<div class="k">${k}</div><div class="v">${v}</div><div class="c"><button onclick="copiar(this, '${v.replace(/'/g, "\\'")}')">Copiar</button></div>`).join("");
+  go(3);
+}
+function copiar(btn, v) { api().copy(v); btn.textContent = "Copiado"; setTimeout(() => btn.textContent = "Copiar", 1500); }
+
+async function init() {
+  CTX = await api().get_context();
+  $("key").value = CTX.license_key || ""; $("host").textContent = CTX.hostname; $("ver").textContent = "versão " + CTX.version;
+  go(1);
+}
+window.addEventListener("pywebviewready", init);
+if (window.pywebview && window.pywebview.api) init();
+</script>
+</body>
+</html>

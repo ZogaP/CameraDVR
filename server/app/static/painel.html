@@ -4,85 +4,336 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CameraDVR – Painel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  :root { --bg:#f6f7f9; --card:#fff; --fg:#1b1f24; --muted:#5b6470; --line:#e2e5ea; --ok:#1a7f37; --bad:#c62828; }
-  @media (prefers-color-scheme: dark) { :root { --bg:#111418; --card:#1a1e24; --fg:#e8eaed; --muted:#9aa3ad; --line:#2b313a; } }
-  body { margin:0; font:14px/1.45 system-ui, sans-serif; background:var(--bg); color:var(--fg); }
-  main { max-width:1100px; margin:0 auto; padding:16px; }
-  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px; margin-bottom:16px; }
-  table { width:100%; border-collapse:collapse; font-size:13px; }
-  th, td { text-align:left; padding:6px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
-  th { color:var(--muted); font-weight:600; }
-  .ok { color:var(--ok); } .bad { color:var(--bad); }
-  input, select, button { font:inherit; padding:6px 10px; border-radius:6px; border:1px solid var(--line); background:var(--card); color:var(--fg); }
-  button { cursor:pointer; }
-  .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  :root {
+    --bg:#f3f5f8; --card:#ffffff; --fg:#141a22; --muted:#5d6876; --line:#e3e7ed; --soft:#f6f8fb;
+    --brand:#1f5eff; --brand-soft:#e8efff; --ok:#13803b; --ok-soft:#e5f5ea; --bad:#c62828; --bad-soft:#fdeaea;
+    --warn:#a35c00; --warn-soft:#fff3e0; --shadow:0 1px 2px rgba(16,24,40,.05), 0 1px 3px rgba(16,24,40,.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg:#0e1116; --card:#161b22; --fg:#e6e9ee; --muted:#97a1ad; --line:#262d37; --soft:#1b212a;
+      --brand:#5b8cff; --brand-soft:#1b2a4a; --ok:#4cc276; --ok-soft:#14301f; --bad:#ff6b6b; --bad-soft:#3a1717;
+      --warn:#f0a945; --warn-soft:#3a2a12; --shadow:none;
+    }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; font:14px/1.5 Inter, system-ui, sans-serif; background:var(--bg); color:var(--fg); }
+  header { background:var(--card); border-bottom:1px solid var(--line); }
+  .bar { max-width:1180px; margin:0 auto; padding:12px 16px; display:flex; align-items:center; gap:12px; }
+  .logo { display:flex; align-items:center; gap:10px; font-weight:700; font-size:16px; }
+  .logo svg { width:28px; height:28px; }
+  .bar .spacer { flex:1; }
+  .who { color:var(--muted); font-size:13px; }
+  main { max-width:1180px; margin:0 auto; padding:20px 16px 48px; }
+  h2 { font-size:15px; margin:0 0 12px; font-weight:600; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:18px; box-shadow:var(--shadow); }
+  .grid { display:grid; gap:16px; }
+  .kpis { grid-template-columns:repeat(4, 1fr); margin-bottom:16px; }
+  .two { grid-template-columns:1.4fr 1fr; margin:16px 0; }
+  @media (max-width:900px) { .kpis { grid-template-columns:repeat(2, 1fr); } .two { grid-template-columns:1fr; } }
+  .kpi .label { color:var(--muted); font-size:12px; font-weight:500; text-transform:uppercase; letter-spacing:.03em; }
+  .kpi .value { font-size:24px; font-weight:700; margin-top:4px; }
+  .kpi .sub { color:var(--muted); font-size:12px; margin-top:2px; }
+  .meter { height:6px; background:var(--soft); border-radius:99px; margin-top:10px; overflow:hidden; }
+  .meter > i { display:block; height:100%; background:var(--brand); border-radius:99px; }
+  .badge { display:inline-flex; align-items:center; gap:6px; padding:3px 10px; border-radius:99px; font-size:12px; font-weight:600; }
+  .badge.ok { background:var(--ok-soft); color:var(--ok); } .badge.bad { background:var(--bad-soft); color:var(--bad); }
+  .badge.warn { background:var(--warn-soft); color:var(--warn); }
+  .dot { width:8px; height:8px; border-radius:50%; background:currentColor; display:inline-block; }
+  .sub-head { display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap; }
+  .sub-head .info { flex:1; min-width:240px; }
+  .plan-name { font-size:18px; font-weight:700; }
+  .facts { display:flex; flex-wrap:wrap; gap:6px 22px; color:var(--muted); font-size:13px; margin-top:6px; }
+  .facts b { color:var(--fg); font-weight:600; }
+  .actions { display:flex; gap:8px; flex-wrap:wrap; }
+  button, .btn { font:inherit; font-weight:600; font-size:13px; padding:9px 14px; border-radius:8px; border:1px solid var(--line);
+    background:var(--card); color:var(--fg); cursor:pointer; display:inline-flex; gap:6px; align-items:center; }
+  button.primary { background:var(--brand); border-color:var(--brand); color:#fff; }
+  button.danger { background:var(--card); border-color:var(--bad); color:var(--bad); }
+  button.danger.solid { background:var(--bad); color:#fff; }
+  button:disabled { opacity:.5; cursor:not-allowed; }
+  input, select { font:inherit; padding:8px 10px; border-radius:8px; border:1px solid var(--line); background:var(--card); color:var(--fg); }
+  .key { font-family:ui-monospace, Menlo, Consolas, monospace; font-size:12.5px; background:var(--soft); border:1px solid var(--line);
+    padding:3px 8px; border-radius:6px; }
   .scroll { overflow-x:auto; }
-  code { font-size:12px; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th, td { text-align:left; padding:9px 10px; border-bottom:1px solid var(--line); vertical-align:middle; white-space:nowrap; }
+  td.wrap { white-space:normal; min-width:240px; }
+  th { color:var(--muted); font-weight:500; font-size:12px; background:var(--soft); }
+  tr:last-child td { border-bottom:none; }
+  .muted { color:var(--muted); }
+  .online { color:var(--ok); } .offline { color:var(--muted); }
+  .bars .row { display:grid; grid-template-columns:120px 1fr 44px; gap:10px; align-items:center; margin:8px 0; font-size:13px; }
+  .bars .track { height:10px; background:var(--soft); border-radius:99px; overflow:hidden; }
+  .bars .track i { display:block; height:100%; background:var(--brand); border-radius:99px; }
+  .bars .n { text-align:right; color:var(--muted); font-variant-numeric:tabular-nums; }
+  .filters { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+  .filters input { flex:1; min-width:180px; }
+  .ev-click { color:var(--brand); font-weight:600; }
+  .ev-window { color:var(--muted); }
+  .login { max-width:420px; margin:10vh auto; }
+  .login p { color:var(--muted); margin-top:0; }
+  .login .row { display:flex; gap:8px; }
+  .login input { flex:1; }
+  dialog { border:none; border-radius:14px; padding:0; width:min(460px, calc(100vw - 32px)); background:var(--card); color:var(--fg);
+    box-shadow:0 20px 50px rgba(0,0,0,.25); }
+  dialog::backdrop { background:rgba(10,14,20,.5); }
+  .dlg { padding:22px; }
+  .dlg h3 { margin:0 0 8px; font-size:17px; }
+  .dlg ul { padding-left:18px; color:var(--muted); margin:10px 0 14px; }
+  .dlg input { width:100%; margin:6px 0 16px; }
+  .dlg .actions { justify-content:flex-end; }
+  .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--fg); color:var(--bg); padding:10px 16px;
+    border-radius:8px; font-size:13px; opacity:0; transition:opacity .2s; pointer-events:none; }
+  .toast.show { opacity:1; }
+  .ev-sub { font-size:12px; }
+  .more { display:flex; justify-content:space-between; align-items:center; margin-top:12px; }
   [hidden] { display:none !important; }
 </style>
 </head>
 <body>
-<main>
-  <h1>CameraDVR – Painel da empresa</h1>
-  <div class="card row" id="login">
-    <input id="token" type="password" placeholder="Token de acesso" size="40">
-    <button onclick="entrar()">Entrar</button>
+<header>
+  <div class="bar">
+    <div class="logo">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="2" y="8" width="20" height="16" rx="4" fill="var(--brand)"/><path d="M22 14l8-5v14l-8-5z" fill="var(--brand)"/><circle cx="12" cy="16" r="4" fill="#fff"/></svg>
+      CameraDVR
+    </div>
+    <div class="spacer"></div>
+    <span class="who" id="who"></span>
+    <button id="sair" hidden onclick="sair()">Sair</button>
   </div>
-  <div id="conteudo" hidden>
-    <div class="card"><h2>Assinaturas</h2><div class="scroll" id="subs"></div></div>
-    <div class="card"><h2>Computadores</h2><div class="scroll" id="devs"></div></div>
-    <div class="card">
-      <h2>Registro de cliques</h2>
-      <div class="row">
-        <select id="filtroDev"><option value="">Todos os computadores</option></select>
+</header>
+
+<main>
+  <section class="card login" id="login">
+    <h2>Entrar no painel</h2>
+    <p>Use o token de acesso enviado no e-mail da contratação.</p>
+    <div class="row">
+      <input id="token" type="password" placeholder="Token de acesso" autocomplete="off">
+      <button class="primary" onclick="entrar()">Entrar</button>
+    </div>
+  </section>
+
+  <div id="app" hidden>
+    <div class="grid kpis">
+      <div class="card kpi"><div class="label">Situação</div><div class="value" id="k-status"></div><div class="sub" id="k-status-sub"></div></div>
+      <div class="card kpi"><div class="label">Válida até</div><div class="value" id="k-end"></div><div class="sub" id="k-end-sub"></div></div>
+      <div class="card kpi"><div class="label">Computadores</div><div class="value" id="k-pcs"></div><div class="meter"><i id="k-pcs-bar"></i></div></div>
+      <div class="card kpi"><div class="label">Cliques hoje</div><div class="value" id="k-clicks"></div><div class="sub" id="k-online"></div></div>
+    </div>
+
+    <section class="card" id="subs"></section>
+
+    <div class="grid two">
+      <section class="card">
+        <h2>Computadores monitorados</h2>
+        <div class="scroll"><table id="devs"></table></div>
+      </section>
+      <section class="card">
+        <h2>Programas mais usados <span class="muted ev-sub">· últimos 7 dias</span></h2>
+        <div class="bars" id="top"></div>
+      </section>
+    </div>
+
+    <section class="card">
+      <h2>Registro de atividade</h2>
+      <div class="filters">
+        <select id="fDev" onchange="SHOW = 25; renderEventos()"><option value="">Todos os computadores</option></select>
+        <select id="fTipo" onchange="SHOW = 25; renderEventos()">
+          <option value="">Todos os eventos</option><option value="click">Somente cliques</option><option value="window">Somente troca de janela</option>
+        </select>
+        <input id="fBusca" type="search" placeholder="Buscar programa, janela ou usuário…" oninput="SHOW = 25; renderEventos()">
         <button onclick="carregarEventos()">Atualizar</button>
       </div>
-      <div class="scroll" id="evs"></div>
-    </div>
+      <div class="scroll"><table id="evs"></table></div>
+      <div class="more"><span class="muted ev-sub" id="evCount"></span><button id="btnMore" onclick="SHOW += 50; renderEventos()">Mostrar mais</button></div>
+    </section>
+
+    <section class="card" style="margin-top:16px">
+      <h2>Aceites e ciências <span class="muted ev-sub">· registro dos termos aceitos na instalação e dos avisos lidos pelos colaboradores</span></h2>
+      <div class="scroll"><table id="aceites"></table></div>
+    </section>
   </div>
 </main>
+
+<dialog id="dlgCancel">
+  <form method="dialog" class="dlg" onsubmit="return false">
+    <h3>Parar a assinatura agora?</h3>
+    <div class="muted">Esta ação é imediata e não pode ser desfeita:</div>
+    <ul>
+      <li>Todos os computadores param de transmitir para o DVR em até 5 minutos.</li>
+      <li>O registro de cliques é interrompido.</li>
+      <li>A cobrança recorrente é cancelada. O período restante não é reembolsado.</li>
+    </ul>
+    <label for="confirmTxt">Digite <b>CANCELAR</b> para confirmar</label>
+    <input id="confirmTxt" autocomplete="off" oninput="document.getElementById('btnConfirm').disabled = this.value.trim().toUpperCase() !== 'CANCELAR'">
+    <div class="actions">
+      <button type="button" onclick="document.getElementById('dlgCancel').close()">Voltar</button>
+      <button type="button" class="danger solid" id="btnConfirm" disabled onclick="confirmarCancelamento()">Parar assinatura</button>
+    </div>
+  </form>
+</dialog>
+<div class="toast" id="toast"></div>
+
 <script>
-let TOKEN = "";
+let TOKEN = "", ME = null, DEVS = [], EVS = [], CANCEL_ID = null, SHOW = 25;
 try { TOKEN = sessionStorage.getItem("cdvr_token") || ""; } catch (e) {}
+const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const BOTAO = { left: "esquerdo", right: "direito", middle: "do meio" };
-const TIPO = { window: "Troca de janela", session: "Sessão", notice: "Ciência do aviso" };
-const fmt = d => d ? new Date(d).toLocaleString("pt-BR") : "—";
-async function api(path) {
-  const r = await fetch(path, { headers: { Authorization: "Bearer " + TOKEN } });
-  if (!r.ok) throw new Error((await r.json()).detail || r.status);
-  return r.json();
+const fmt = d => d ? new Date(d).toLocaleString("pt-BR", { dateStyle:"short", timeStyle:"short" }) : "—";
+const fmtDate = d => d ? new Date(d).toLocaleDateString("pt-BR") : "—";
+const money = v => v.toLocaleString("pt-BR", { style:"currency", currency:"BRL" });
+const BOTAO = { left:"esquerdo", right:"direito", middle:"do meio" };
+const TIPO_ACEITE = { instalacao:"Termos de Uso (instalação)", contratacao:"Termos de Uso (contratação)", colaborador:"Ciência do colaborador" };
+const cpf = d => d && d.length === 11 ? `${d.slice(0,3)}.***.***-${d.slice(9)}` : (d || "");
+
+function toast(msg) { const t = $("toast"); t.textContent = msg; t.classList.add("show"); setTimeout(() => t.classList.remove("show"), 3500); }
+
+async function api(path, opts = {}) {
+  const r = await fetch(path, { ...opts, headers: { "Content-Type":"application/json", Authorization:"Bearer " + TOKEN, ...(opts.headers || {}) } });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(typeof data.detail === "string" ? data.detail : "erro " + r.status);
+  return data;
 }
+
 async function entrar() {
-  TOKEN = document.getElementById("token").value.trim() || TOKEN;
+  TOKEN = $("token").value.trim() || TOKEN;
   try {
-    const me = await api("/api/customer/me");
+    ME = await api("/api/customer/me");
     try { sessionStorage.setItem("cdvr_token", TOKEN); } catch (e) {}
-    document.getElementById("login").hidden = true;
-    document.getElementById("conteudo").hidden = false;
-    document.getElementById("subs").innerHTML = "<table><tr><th>Plano</th><th>Chave de licença</th><th>Situação</th><th>Válida até</th><th>Computadores</th></tr>" +
-      me.subscriptions.map(s => `<tr><td>${esc(s.plan)}</td><td><code>${esc(s.license_key)}</code></td>
-        <td class="${s.can_use ? "ok" : "bad"}">${s.can_use ? "Liberada" : "Bloqueada: " + esc(s.reason)}</td>
-        <td>${fmt(s.current_period_end)}</td><td>${s.devices_in_use} / ${s.max_devices}</td></tr>`).join("") + "</table>";
-    const devs = await api("/api/customer/devices");
-    document.getElementById("devs").innerHTML = "<table><tr><th>Computador</th><th>IP local</th><th>Endereço RTSP</th><th>Último contato</th></tr>" +
-      devs.map(d => `<tr><td>${esc(d.label || d.hostname)}</td><td>${esc(d.local_ip)}</td>
-        <td><code>${d.local_ip ? "rtsp://" + esc(d.local_ip) + ":8554/tela" : "—"}</code></td><td>${fmt(d.last_seen)}</td></tr>`).join("") + "</table>";
-    const sel = document.getElementById("filtroDev");
-    sel.innerHTML = '<option value="">Todos os computadores</option>' + devs.map(d => `<option value="${d.id}">${esc(d.label || d.hostname)}</option>`).join("");
-    window._devs = Object.fromEntries(devs.map(d => [d.id, d.label || d.hostname]));
-    carregarEventos();
-  } catch (e) { alert("Falha ao entrar: " + e.message); }
+    $("login").hidden = true; $("app").hidden = false; $("sair").hidden = false;
+    $("who").textContent = ME.name;
+    await recarregar();
+  } catch (e) { toast("Falha ao entrar: " + e.message); }
 }
-async function carregarEventos() {
-  const id = document.getElementById("filtroDev").value;
-  const evs = await api("/api/customer/events?limit=500" + (id ? "&device_id=" + id : ""));
-  document.getElementById("evs").innerHTML = "<table><tr><th>Data/hora</th><th>Computador</th><th>Usuário</th><th>Evento</th><th>Programa</th><th>Janela</th></tr>" +
-    evs.map(e => `<tr><td>${fmt(e.ts)}</td><td>${esc(window._devs[e.device_id])}</td><td>${esc(e.user_name)}</td>
-      <td>${e.kind === "click" ? "Clique " + esc(BOTAO[e.button] || e.button) + " (" + e.x + ", " + e.y + ")" : esc(TIPO[e.kind] || e.kind)}</td>
-      <td>${esc(e.process_name)}</td><td>${esc(e.window_title)}</td></tr>`).join("") + "</table>";
+function sair() { try { sessionStorage.removeItem("cdvr_token"); } catch (e) {} location.reload(); }
+
+async function recarregar() {
+  ME = await api("/api/customer/me");
+  const [devs, stats, aceites] = await Promise.all([api("/api/customer/devices"), api("/api/customer/stats"), api("/api/customer/acceptances")]);
+  DEVS = devs;
+  renderAssinatura(); renderKpis(stats); renderDevs(stats); renderTop(stats); renderAceites(aceites);
+  $("fDev").innerHTML = '<option value="">Todos os computadores</option>' + DEVS.map(d => `<option value="${d.id}">${esc(d.label || d.hostname)}</option>`).join("");
+  await carregarEventos();
 }
+
+const isOnline = d => d.last_seen && (Date.now() - new Date(d.last_seen)) < 10 * 60 * 1000;
+
+function renderKpis(stats) {
+  const s = ME.subscriptions[0];
+  if (!s) return;
+  $("k-status").innerHTML = s.can_use ? '<span class="badge ok"><span class="dot"></span>Ativa</span>' : '<span class="badge bad"><span class="dot"></span>Bloqueada</span>';
+  $("k-status-sub").textContent = s.can_use ? (s.auto_renew ? "Renovação automática ligada" : "Renovação manual") : s.reason;
+  $("k-end").textContent = fmtDate(s.current_period_end);
+  const dias = s.current_period_end ? Math.ceil((new Date(s.current_period_end) - Date.now()) / 864e5) : null;
+  $("k-end-sub").textContent = dias === null ? "" : dias >= 0 ? `faltam ${dias} dia${dias === 1 ? "" : "s"}` : `venceu há ${-dias} dia${dias === -1 ? "" : "s"}`;
+  $("k-pcs").textContent = `${s.devices_in_use} / ${s.max_devices}`;
+  $("k-pcs-bar").style.width = Math.min(100, 100 * s.devices_in_use / s.max_devices) + "%";
+  $("k-clicks").textContent = stats.clicks_today.toLocaleString("pt-BR");
+  const on = DEVS.filter(isOnline).length;
+  $("k-online").textContent = `${on} de ${DEVS.length} computadores online`;
+}
+
+function renderAssinatura() {
+  $("subs").innerHTML = ME.subscriptions.map(s => {
+    const dias = s.current_period_end ? Math.ceil((new Date(s.current_period_end) - Date.now()) / 864e5) : null;
+    const aviso = s.status === "canceled" ? '<span class="badge bad">Cancelada</span>'
+      : !s.can_use ? '<span class="badge bad">Bloqueada</span>'
+      : dias !== null && dias <= 5 ? '<span class="badge warn">Vence em breve</span>' : '<span class="badge ok">Em dia</span>';
+    return `<div class="sub-head">
+      <div class="info">
+        <div class="muted ev-sub">Sua assinatura</div>
+        <div class="plan-name">Plano ${esc(s.plan)} ${aviso}</div>
+        <div class="facts">
+          <span><b>${money(s.price)}</b> a cada ${s.period_days} dias</span>
+          <span>Até <b>${s.max_devices}</b> computadores</span>
+          <span>Chave de licença <span class="key">${esc(s.license_key)}</span></span>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="primary" onclick="renovar(${s.id}, this)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>
+          Renovar assinatura
+        </button>
+        <button class="danger" onclick="pedirCancelamento(${s.id})" ${s.status === "canceled" && !s.can_use ? "disabled" : ""}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+          Parar assinatura agora
+        </button>
+      </div>
+    </div>`;
+  }).join('<hr style="border:none;border-top:1px solid var(--line);margin:16px 0">');
+}
+
+function renderDevs(stats) {
+  $("devs").innerHTML = "<tr><th>Computador</th><th>Status</th><th>Endereço RTSP (DVR)</th><th>Cliques hoje</th><th>Último contato</th></tr>" +
+    DEVS.map(d => `<tr>
+      <td><b>${esc(d.label || d.hostname)}</b></td>
+      <td>${isOnline(d) ? '<span class="online"><span class="dot"></span> Online</span>' : '<span class="offline"><span class="dot"></span> Offline</span>'}</td>
+      <td>${d.local_ip ? `<span class="key">rtsp://${esc(d.local_ip)}:8554/tela</span>` : "—"}</td>
+      <td>${(stats.clicks_today_by_device[d.id] || 0).toLocaleString("pt-BR")}</td>
+      <td class="muted">${fmt(d.last_seen)}</td></tr>`).join("");
+}
+
+function renderTop(stats) {
+  const max = Math.max(1, ...stats.top_programs.map(p => p.count));
+  $("top").innerHTML = stats.top_programs.length ? stats.top_programs.map(p => `<div class="row">
+    <span title="${esc(p.process_name)}">${esc(p.process_name)}</span>
+    <span class="track"><i style="width:${100 * p.count / max}%"></i></span><span class="n">${p.count}</span></div>`).join("")
+    : '<div class="muted">Sem dados ainda.</div>';
+}
+
+function renderAceites(rows) {
+  $("aceites").innerHTML = "<tr><th>Data/hora</th><th>Tipo</th><th>Quem</th><th>Computador</th><th>IP</th><th>Versão</th></tr>" +
+    (rows.length ? rows.map(a => `<tr><td>${fmt(a.accepted_at)}</td><td>${TIPO_ACEITE[a.kind] || esc(a.kind)}</td>
+      <td>${a.name ? `${esc(a.name)} <span class="muted">· ${esc(a.role || "")} · CPF ${esc(cpf(a.document))}</span>` : esc(a.user_name)}</td>
+      <td>${esc(a.hostname || "—")}</td><td class="muted">${esc(a.ip || "—")}</td>
+      <td class="muted" title="SHA-256 ${esc(a.doc_sha256)}">${esc(a.doc_version)}</td></tr>`).join("")
+    : '<tr><td colspan="6" class="muted">Nenhum registro.</td></tr>');
+}
+
+async function carregarEventos() { EVS = await api("/api/customer/events?limit=1000"); renderEventos(); }
+
+function renderEventos() {
+  const dev = $("fDev").value, tipo = $("fTipo").value, q = $("fBusca").value.trim().toLowerCase();
+  const nomes = Object.fromEntries(DEVS.map(d => [d.id, d.label || d.hostname]));
+  const rows = EVS.filter(e => (!dev || e.device_id == dev) && (!tipo || e.kind === tipo) &&
+    (!q || [e.process_name, e.window_title, e.user_name].some(v => (v || "").toLowerCase().includes(q))));
+  const total = rows.length;
+  rows.splice(SHOW);
+  $("evCount").textContent = `Mostrando ${rows.length} de ${total} eventos`;
+  $("btnMore").hidden = rows.length >= total;
+  $("evs").innerHTML = "<tr><th>Data/hora</th><th>Computador</th><th>Usuário</th><th>Evento</th><th>Programa</th><th>Janela</th></tr>" +
+    (rows.length ? rows.map(e => `<tr><td>${fmt(e.ts)}</td><td>${esc(nomes[e.device_id])}</td><td>${esc(e.user_name)}</td>
+      <td>${e.kind === "click" ? `<span class="ev-click">Clique ${esc(BOTAO[e.button] || e.button)}</span> <span class="muted ev-sub">(${e.x}, ${e.y})</span>` : '<span class="ev-window">Troca de janela</span>'}</td>
+      <td>${esc(e.process_name)}</td><td class="wrap">${esc(e.window_title)}</td></tr>`).join("")
+    : '<tr><td colspan="6" class="muted">Nenhum evento encontrado.</td></tr>');
+}
+
+async function renovar(id, btn) {
+  btn.disabled = true;
+  try {
+    const r = await api(`/api/customer/subscriptions/${id}/renew`, { method:"POST" });
+    window.open(r.checkout_url, "_blank", "noopener");
+    toast("Abrimos o pagamento em uma nova aba. A licença é liberada assim que o pagamento for aprovado.");
+  } catch (e) { toast("Não foi possível gerar o pagamento: " + e.message); }
+  finally { btn.disabled = false; }
+}
+
+function pedirCancelamento(id) { CANCEL_ID = id; $("confirmTxt").value = ""; $("btnConfirm").disabled = true; $("dlgCancel").showModal(); }
+
+async function confirmarCancelamento() {
+  try {
+    await api(`/api/customer/subscriptions/${CANCEL_ID}/cancel`, { method:"POST", body: JSON.stringify({ confirm: $("confirmTxt").value }) });
+    $("dlgCancel").close();
+    toast("Assinatura parada. Os computadores deixam de transmitir em até 5 minutos.");
+    await recarregar();
+  } catch (e) { toast("Erro: " + e.message); }
+}
+
+$("token").addEventListener("keydown", e => { if (e.key === "Enter") entrar(); });
 if (TOKEN) entrar();
 </script>
 </body>

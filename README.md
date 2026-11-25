@@ -95,8 +95,38 @@ Outros endpoints de admin: `GET /api/admin/{plans,customers,subscriptions}`, `PO
 
 ### Painel da empresa cliente
 
-`https://SEU_DOMINIO/painel`: o cliente entra com o `api_token` dele e vê a situação da assinatura,
-os PCs com seus endereços RTSP e o registro de cliques (data/hora, usuário do Windows, programa, janela).
+`https://SEU_DOMINIO/painel`: o cliente entra com o `api_token` dele e vê:
+- situação da assinatura, validade, PCs em uso e cliques do dia;
+- **Renovar assinatura**: gera um pagamento avulso de 1 período (PIX, cartão ou boleto) no Mercado Pago.
+  Quando o pagamento é aprovado, o webhook (`payment`) estende a validade;
+- **Parar assinatura agora**: pede que o cliente digite `CANCELAR`, bloqueia os PCs em até 5 minutos
+  e cancela a cobrança recorrente no Mercado Pago;
+- PCs online/offline com o endereço RTSP, programas mais usados e registro de atividade com filtros;
+- **Aceites e ciências**: a prova de quem aceitou os termos e de quais colaboradores leram o aviso.
+
+## Proteção jurídica (aceite dos termos)
+
+- **Termos de Uso** (`server/app/legal/termos_de_uso.md`): o cliente é o *controlador* (LGPD) e
+  o único responsável pelo uso. Ele se compromete a informar os funcionários e a usar o sistema só em
+  computadores da empresa, fica proibido o monitoramento oculto, e há cláusula de indenização e
+  limitação de responsabilidade. **É um modelo: passe por um advogado.**
+- **Aceite obrigatório:** sem aceitar a versão atual dos termos, o PC não ativa (HTTP 428). O
+  instalador mostra o texto, exige rolar até o fim e pede nome, CPF (validado) e cargo do responsável.
+- **Prova:** cada aceite fica gravado com nome, CPF, cargo, data/hora, IP, computador e o hash
+  SHA-256 do texto exato aceito. Se você mudar o texto, o hash muda e é preciso aceitar de novo.
+- **Ciência do colaborador:** no primeiro login de cada usuário do Windows aparece o aviso
+  (`aviso_colaborador.md`). O clique em "Li e estou ciente" também é registrado no servidor.
+- **Não existe modo oculto:** o ícone na bandeja e o aviso não podem ser desligados pela configuração.
+
+## Telas do agente (PC)
+
+O agente usa **pywebview**, que no Windows roda no Edge WebView2 (já vem no Windows 10/11):
+- `CameraDVR.exe --instalar`: assistente (chave → Termos de Uso → dados para o DVR);
+- `CameraDVR.exe --status`: janela de status, também aberta pelo ícone da bandeja;
+- `CameraDVR.exe --aviso`: aviso ao colaborador.
+
+Para implantar em muitos PCs sem interface:
+`CameraDVR.exe --servidor URL --ativar CHAVE --nome "Fulano de Tal" --cpf 00000000000 --cargo Diretor --aceito-termos`
 
 ## Agente (PC monitorado)
 
@@ -111,11 +141,11 @@ Instalar em cada PC (como Administrador):
 
 ```powershell
 cd dist\CameraDVR
-powershell -ExecutionPolicy Bypass -File instalar.ps1 -Chave CDVR-XXXXX-XXXXX-XXXXX-XXXXX -Servidor https://licencas.seudominio.com.br
+powershell -ExecutionPolicy Bypass -File instalar.ps1 -Servidor https://licencas.seudominio.com.br
 ```
 
-O instalador libera as portas no firewall, ativa a licença, cria uma tarefa agendada que inicia no
-logon de qualquer usuário e mostra os dados para o DVR:
+O instalador libera as portas no firewall e abre o assistente (chave, aceite dos termos e ativação).
+Depois cria uma tarefa agendada que inicia o agente no logon de qualquer usuário. O assistente mostra os dados para o DVR:
 
 ```
 RTSP : rtsp://192.168.0.23:8554/tela
@@ -137,9 +167,8 @@ Senha  : (gerada automaticamente; fica em C:\ProgramData\CameraDVR\config.json)
 Monitorar o computador **corporativo** é permitido no Brasil, desde que com **transparência e
 finalidade legítima**. Para proteger você e seus clientes, o produto já vem assim:
 
-- **Aviso visível:** um ícone na bandeja ("Este computador está sendo monitorado") e um aviso na
-  primeira vez que cada usuário entra. Recomendo não oferecer modo oculto: monitoramento secreto
-  aumenta muito o risco de ações trabalhistas e de sanções da ANPD.
+- **Aviso visível e obrigatório:** um ícone na bandeja e um aviso de ciência no primeiro login de cada usuário.
+  Não há modo oculto: monitoramento secreto aumenta muito o risco de ações trabalhistas e de sanções da ANPD.
 - **Sem keylogger:** só registra cliques, programa e título da janela. Não grava teclas
   digitadas nem senhas.
 - **Retenção limitada:** os eventos são apagados automaticamente após o prazo do plano.

@@ -68,6 +68,14 @@ def local_ip() -> str:
         s.close()
 
 
+def _detail(r: httpx.Response) -> str:
+    try:
+        d = r.json().get("detail")
+    except ValueError:
+        d = None
+    return d if isinstance(d, str) else "licença recusada (dados inválidos)"
+
+
 class LicenseError(Exception):
     """Servidor recusou a licença (não pago, limite, cancelado...)."""
 
@@ -120,11 +128,12 @@ class LicenseClient:
                 "hostname": socket.gethostname(),
                 "agent_version": AGENT_VERSION,
                 "local_ip": local_ip(),
+                "acceptance": self.state.acceptance,
             },
         )
-        if r.status_code in (402, 403, 404):
+        if r.status_code in (402, 403, 404, 422, 428):
             self._revoke()
-            raise LicenseError(r.json().get("detail", "licença recusada"))
+            raise LicenseError(_detail(r))
         r.raise_for_status()
         d = r.json()
         self.state.device_id = d["device_id"]
@@ -143,7 +152,7 @@ class LicenseClient:
             return self.activate()
         if r.status_code in (402, 403):
             self._revoke()
-            raise LicenseError(r.json().get("detail", "licença recusada"))
+            raise LicenseError(_detail(r))
         r.raise_for_status()
         self.state.token = r.json()["token"]
         self.state.save()

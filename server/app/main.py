@@ -10,6 +10,7 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from sqlalchemy import delete, select
 
+from . import legal
 from .db import SessionLocal, init_db
 from .models import ActivityEvent, Device, Plan, Subscription
 from .routes import admin, agent, billing, customer
@@ -69,6 +70,18 @@ app.include_router(agent.router)
 app.include_router(admin.router)
 app.include_router(customer.router)
 app.include_router(billing.router)
+
+
+@app.get("/api/legal/terms", tags=["legal"])
+def legal_terms():
+    """Texto oficial dos Termos de Uso, com versão e hash (exibido no instalador e no site)."""
+    return legal.terms()
+
+
+@app.get("/api/legal/notice", tags=["legal"])
+def legal_notice():
+    """Aviso de monitoramento exibido ao colaborador."""
+    return legal.notice()
 
 
 @app.get("/health")

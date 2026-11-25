@@ -25,3 +25,18 @@ def terms() -> dict:
 def notice() -> dict:
     text, h = _load("aviso_colaborador.md")
     return {"version": NOTICE_VERSION, "sha256": h, "text": text}
+
+
+def only_digits(s: str) -> str:
+    return "".join(ch for ch in s if ch.isdigit())
+
+
+def valid_cpf(cpf: str) -> bool:
+    d = only_digits(cpf)
+    if len(d) != 11 or d == d[0] * 11:
+        return False
+    for n in (9, 10):
+        total = sum(int(d[i]) * (n + 1 - i) for i in range(n))
+        if (total * 10 % 11) % 10 != int(d[n]):
+            return False
+    return True

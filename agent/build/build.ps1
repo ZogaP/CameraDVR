@@ -30,6 +30,8 @@ if (-not (Test-Path "bin\ffmpeg.exe")) {
 
 pyinstaller --noconfirm --clean --name CameraDVR --noconsole `
     --add-data "cameradvr_agent\license_public.pem;cameradvr_agent" `
+    --add-data "cameradvr_agent\ui;cameradvr_agent\ui" `
+    --collect-all webview `
     --hidden-import pynput.mouse._win32 --hidden-import pystray._win32 `
     cameradvr_agent\__main__.py
 
