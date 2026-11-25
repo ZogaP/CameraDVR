@@ -19,6 +19,7 @@
   .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
   .scroll { overflow-x:auto; }
   code { font-size:12px; }
+  [hidden] { display:none !important; }
 </style>
 </head>
 <body>
@@ -45,6 +46,8 @@
 let TOKEN = "";
 try { TOKEN = sessionStorage.getItem("cdvr_token") || ""; } catch (e) {}
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const BOTAO = { left: "esquerdo", right: "direito", middle: "do meio" };
+const TIPO = { window: "Troca de janela", session: "Sessão", notice: "Ciência do aviso" };
 const fmt = d => d ? new Date(d).toLocaleString("pt-BR") : "—";
 async function api(path) {
   const r = await fetch(path, { headers: { Authorization: "Bearer " + TOKEN } });
@@ -77,7 +80,7 @@ async function carregarEventos() {
   const evs = await api("/api/customer/events?limit=500" + (id ? "&device_id=" + id : ""));
   document.getElementById("evs").innerHTML = "<table><tr><th>Data/hora</th><th>Computador</th><th>Usuário</th><th>Evento</th><th>Programa</th><th>Janela</th></tr>" +
     evs.map(e => `<tr><td>${fmt(e.ts)}</td><td>${esc(window._devs[e.device_id])}</td><td>${esc(e.user_name)}</td>
-      <td>${e.kind === "click" ? "Clique " + esc(e.button) + " (" + e.x + "," + e.y + ")" : esc(e.kind)}</td>
+      <td>${e.kind === "click" ? "Clique " + esc(BOTAO[e.button] || e.button) + " (" + e.x + ", " + e.y + ")" : esc(TIPO[e.kind] || e.kind)}</td>
       <td>${esc(e.process_name)}</td><td>${esc(e.window_title)}</td></tr>`).join("") + "</table>";
 }
 if (TOKEN) entrar();
